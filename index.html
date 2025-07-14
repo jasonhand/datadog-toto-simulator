@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOTO: Time Series Optimization Model Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/2.0.0/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #666;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .demo-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .demo-section:hover {
+            transform: translateY(-5px);
+        }
+
+        .demo-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        input, select, button {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats-display {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .forecast-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .metric-label {
+            display: block;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .correlation-matrix {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+        }
+
+        .correlation-matrix h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .correlation-grid {
+            display: grid;
+            gap: 5px;
+        }
+
+        .correlation-cell {
+            padding: 8px;
+            text-align: center;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .playground-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .parameter-panel, .performance-panel {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .parameter-panel h3, .performance-panel h3 {
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .performance-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .perf-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .perf-label {
+            min-width: 100px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .perf-bar {
+            flex: 1;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .perf-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #10b981, #059669);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .perf-value {
+            min-width: 60px;
+            text-align: right;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .architecture-viz {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .architecture-viz h3 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .architecture-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .arch-layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .layer-label {
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .layer-nodes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .node {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .node:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .attention-node {
+            background: linear-gradient(45deg, #f59e0b, #f97316);
+        }
+
+        .connection {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 1px;
+            opacity: 0.6;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        .uncertainty-band {
+            opacity: 0.3;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>TOTO Model Demonstration</h1>
+            <p>Interactive visualization of Datadog's Time-Series-Optimized Transformer for Observability metrics. Explore zero-shot forecasting, probabilistic predictions, and multi-variate time series analysis.</p>
+        </div>
+
+        <div class="stats-display">
+            <h3>TOTO Model Stats</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number">2T+</span>
+                    <span class="stat-label">Training Data Points</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">Zero-Shot</span>
+                    <span class="stat-label">Forecasting</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">Multi-Variate</span>
+                    <span class="stat-label">Support</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">Student-T</span>
+                    <span class="stat-label">Mixture Model</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-grid">
+            <div class="demo-section">
+                <h2>🔮 Zero-Shot Forecasting</h2>
+                <p>TOTO can forecast time series without fine-tuning on your specific data. Click on the chart to add anomalies!</p>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>Prediction Length:</label>
+                        <input type="range" id="predictionLength" min="24" max="336" value="168" />
+                        <span id="predictionLengthValue">168 hours</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Time Series Pattern:</label>
+                        <select id="seriesPattern">
+                            <option value="seasonal">Seasonal (CPU Usage)</option>
+                            <option value="trending">Trending (Memory Usage)</option>
+                            <option value="volatile">Volatile (Network Traffic)</option>
+                            <option value="anomaly">With Anomalies</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Confidence Level:</label>
+                        <input type="range" id="confidenceLevel" min="50" max="99" value="95" />
+                        <span id="confidenceLevelValue">95%</span>
+                    </div>
+                    <button onclick="updateForecast()">Generate Forecast</button>
+                    <button onclick="addRandomAnomaly()" style="background: linear-gradient(45deg, #f59e0b, #f97316);">Add Anomaly</button>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="forecastChart"></canvas>
+                </div>
+
+                <div class="forecast-metrics">
+                    <div class="metric-card">
+                        <span class="metric-label">MAE</span>
+                        <span class="metric-value" id="maeValue">2.34</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">MAPE</span>
+                        <span class="metric-value" id="mapeValue">4.7%</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Coverage</span>
+                        <span class="metric-value" id="coverageValue">94.2%</span>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span>Historical Data</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ef4444;"></div>
+                        <span>TOTO Forecast</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: rgba(239, 68, 68, 0.3);"></div>
+                        <span>Uncertainty Band</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-section">
+                <h2>📊 Multi-Variate Analysis</h2>
+                <p>TOTO efficiently processes multiple variables using Proportional Factorized Space-Time Attention. Hover over lines to see correlations!</p>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>Number of Variables:</label>
+                        <input type="range" id="numVariables" min="2" max="7" value="4" />
+                        <span id="numVariablesValue">4 variables</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Correlation Strength:</label>
+                        <input type="range" id="correlation" min="0" max="100" value="50" />
+                        <span id="correlationValue">50%</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Time Window:</label>
+                        <select id="timeWindow">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="48" selected>Last 48 Hours</option>
+                            <option value="168">Last Week</option>
+                        </select>
+                    </div>
+                    <button onclick="updateMultivariate()">Update Analysis</button>
+                    <button onclick="simulateIncident()" style="background: linear-gradient(45deg, #ef4444, #dc2626);">Simulate Incident</button>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="multivariateChart"></canvas>
+                </div>
+
+                <div class="correlation-matrix" id="correlationMatrix">
+                    <h4>Correlation Matrix</h4>
+                    <div id="correlationGrid"></div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span>CPU Usage</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ef4444;"></div>
+                        <span>Memory Usage</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>Network I/O</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f59e0b;"></div>
+                        <span>Disk I/O</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section" style="margin-top: 30px;">
+            <h2>🎮 Interactive Model Playground</h2>
+            <p>Experiment with TOTO's architecture parameters and see how they affect performance.</p>
+            
+            <div class="playground-grid">
+                <div class="parameter-panel">
+                    <h3>Model Parameters</h3>
+                    <div class="controls">
+                        <div class="control-group">
+                            <label>Context Length:</label>
+                            <select id="contextLength">
+                                <option value="512">512</option>
+                                <option value="1024">1024</option>
+                                <option value="2048" selected>2048</option>
+                                <option value="4096">4096</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Attention Heads:</label>
+                            <input type="range" id="attentionHeads" min="4" max="16" value="8" step="4" />
+                            <span id="attentionHeadsValue">8 heads</span>
+                        </div>
+                        <div class="control-group">
+                            <label>Model Size:</label>
+                            <select id="modelSize">
+                                <option value="small">Small (70M params)</option>
+                                <option value="base" selected>Base (200M params)</option>
+                                <option value="large">Large (500M params)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="performance-panel">
+                    <h3>Performance Metrics</h3>
+                    <div class="performance-grid">
+                        <div class="perf-item">
+                            <span class="perf-label">Inference Speed</span>
+                            <div class="perf-bar">
+                                <div class="perf-fill" id="speedBar" style="width: 75%;"></div>
+                            </div>
+                            <span class="perf-value" id="speedValue">1.2s</span>
+                        </div>
+                        <div class="perf-item">
+                            <span class="perf-label">Memory Usage</span>
+                            <div class="perf-bar">
+                                <div class="perf-fill" id="memoryBar" style="width: 60%;"></div>
+                            </div>
+                            <span class="perf-value" id="memoryValue">2.1GB</span>
+                        </div>
+                        <div class="perf-item">
+                            <span class="perf-label">Accuracy</span>
+                            <div class="perf-bar">
+                                <div class="perf-fill" id="accuracyBar" style="width: 88%;"></div>
+                            </div>
+                            <span class="perf-value" id="accuracyValue">88.3%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="architecture-viz">
+                <h3>Model Architecture Visualization</h3>
+                <div class="architecture-container" id="architectureViz">
+                    <div class="arch-layer input-layer">
+                        <div class="layer-label">Input Layer</div>
+                        <div class="layer-nodes" id="inputNodes"></div>
+                    </div>
+                    <div class="arch-layer attention-layer">
+                        <div class="layer-label">Multi-Head Attention</div>
+                        <div class="layer-nodes" id="attentionNodes"></div>
+                    </div>
+                    <div class="arch-layer output-layer">
+                        <div class="layer-label">Output Layer</div>
+                        <div class="layer-nodes" id="outputNodes"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Foundation Model</h3>
+                <p>Pre-trained on 2+ trillion time series data points, the largest dataset for any open-weights time series model.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Observability Focus</h3>
+                <p>Specifically designed for monitoring metrics covering infrastructure, networking, databases, and applications.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>Probabilistic Predictions</h3>
+                <p>Generates both point forecasts and uncertainty estimates using a Student-T mixture model.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>High Performance</h3>
+                <p>State-of-the-art results on GIFT-Eval benchmark and custom BOOM observability dataset.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔧</div>
+                <h3>Decoder-Only Architecture</h3>
+                <p>Supports variable prediction horizons and context lengths for flexible forecasting.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>Production Ready</h3>
+                <p>Available on Hugging Face with optimizations for xformers and flash-attention.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let forecastChart = null;
+        let multivariateChart = null;
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeForecastChart();
+            initializeMultivariateChart();
+            updateSliderValues();
+            initializeArchitecture();
+            updatePerformanceMetrics();
+        });
+
+        function updateSliderValues() {
+            document.getElementById('predictionLength').addEventListener('input', function() {
+                document.getElementById('predictionLengthValue').textContent = this.value + ' hours';
+            });
+            
+            document.getElementById('numVariables').addEventListener('input', function() {
+                document.getElementById('numVariablesValue').textContent = this.value + ' variables';
+            });
+            
+            document.getElementById('correlation').addEventListener('input', function() {
+                document.getElementById('correlationValue').textContent = this.value + '%';
+            });
+
+            document.getElementById('confidenceLevel').addEventListener('input', function() {
+                document.getElementById('confidenceLevelValue').textContent = this.value + '%';
+            });
+
+            document.getElementById('attentionHeads').addEventListener('input', function() {
+                document.getElementById('attentionHeadsValue').textContent = this.value + ' heads';
+                updateArchitecture();
+                updatePerformanceMetrics();
+            });
+
+            // Add event listeners for other controls
+            document.getElementById('contextLength').addEventListener('change', updatePerformanceMetrics);
+            document.getElementById('modelSize').addEventListener('change', updatePerformanceMetrics);
+        }
+
+        function generateTimeSeriesData(length, pattern, includeAnomaly = false) {
+            const data = [];
+            
+            for (let i = 0; i < length; i++) {
+                let value = 50; // base value
+                
+                switch (pattern) {
+                    case 'seasonal':
+                        value += 20 * Math.sin(2 * Math.PI * i / 24) + 10 * Math.sin(2 * Math.PI * i / (24 * 7));
+                        value += Math.random() * 5 - 2.5; // noise
+                        break;
+                    case 'trending':
+                        value += i * 0.1 + 15 * Math.sin(2 * Math.PI * i / 24);
+                        value += Math.random() * 3 - 1.5;
+                        break;
+                    case 'volatile':
+                        value += Math.random() * 40 - 20;
+                        value += 10 * Math.sin(2 * Math.PI * i / 12);
+                        break;
+                    case 'anomaly':
+                        value += 15 * Math.sin(2 * Math.PI * i / 24);
+                        if (i > length * 0.7 && i < length * 0.75) {
+                            value *= 2.5; // spike anomaly
+                        }
+                        value += Math.random() * 4 - 2;
+                        break;
+                }
+                
+                data.push({
+                    x: i,
+                    y: Math.max(0, value)
+                });
+            }
+            
+            return data;
+        }
+
+        function generateForecastData(historicalData, predictionLength) {
+            const forecast = [];
+            const upper = [];
+            const lower = [];
+            const lastPoint = historicalData[historicalData.length - 1];
+            const lastValue = lastPoint.y;
+            const lastX = lastPoint.x;
+            
+            for (let i = 1; i <= predictionLength; i++) {
+                const x = lastX + i;
+                const baseValue = lastValue + Math.sin(2 * Math.PI * i / 24) * 8;
+                const uncertainty = Math.sqrt(i) * 2; // uncertainty grows with time
+                
+                forecast.push({
+                    x: x,
+                    y: Math.max(0, baseValue + Math.random() * 2 - 1)
+                });
+                
+                upper.push({
+                    x: x,
+                    y: Math.max(0, baseValue + uncertainty * 1.96)
+                });
+                
+                lower.push({
+                    x: x,
+                    y: Math.max(0, baseValue - uncertainty * 1.96)
+                });
+            }
+            
+            return { forecast, upper, lower };
+        }
+
+        function initializeForecastChart() {
+            const ctx = document.getElementById('forecastChart').getContext('2d');
+            const historicalData = generateTimeSeriesData(168, 'seasonal'); // 1 week of hourly data
+            const predictionLength = parseInt(document.getElementById('predictionLength').value);
+            const { forecast, upper, lower } = generateForecastData(historicalData, predictionLength);
+            
+            forecastChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Historical Data',
+                            data: historicalData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: '#3b82f6',
+                            borderWidth: 2,
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'TOTO Forecast',
+                            data: forecast,
+                            borderColor: '#ef4444',
+                            backgroundColor: '#ef4444',
+                            borderWidth: 2,
+                            fill: false,
+                            pointRadius: 0,
+                            borderDash: [5, 5]
+                        },
+                        {
+                            label: 'Uncertainty Upper',
+                            data: upper,
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 1,
+                            fill: '+1',
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Uncertainty Lower',
+                            data: lower,
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 1,
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Hours'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Metric Value'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    onClick: (event, elements) => {
+                        const points = forecastChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                        if (points.length) {
+                            addAnomalyAtPoint(points[0].index);
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateForecast() {
+            const pattern = document.getElementById('seriesPattern').value;
+            const predictionLength = parseInt(document.getElementById('predictionLength').value);
+            const confidenceLevel = parseInt(document.getElementById('confidenceLevel').value);
+            
+            const historicalData = generateTimeSeriesData(168, pattern);
+            const { forecast, upper, lower } = generateForecastData(historicalData, predictionLength, confidenceLevel);
+            
+            forecastChart.data.datasets[0].data = historicalData;
+            forecastChart.data.datasets[1].data = forecast;
+            forecastChart.data.datasets[2].data = upper;
+            forecastChart.data.datasets[3].data = lower;
+            
+            forecastChart.update('active');
+            updateForecastMetrics();
+        }
+
+        function updateForecastMetrics() {
+            // Simulate realistic metrics based on current settings
+            const mae = (Math.random() * 2 + 1.5).toFixed(2);
+            const mape = (Math.random() * 3 + 3.5).toFixed(1);
+            const coverage = (Math.random() * 6 + 92).toFixed(1);
+            
+            document.getElementById('maeValue').textContent = mae;
+            document.getElementById('mapeValue').textContent = mape + '%';
+            document.getElementById('coverageValue').textContent = coverage + '%';
+        }
+
+        function updatePerformanceMetrics() {
+            const modelSize = document.getElementById('modelSize').value;
+            const contextLength = document.getElementById('contextLength').value;
+            const attentionHeads = parseInt(document.getElementById('attentionHeads').value);
+            
+            // Calculate performance metrics based on model configuration
+            let speed, memory, accuracy;
+            
+            switch (modelSize) {
+                case 'small':
+                    speed = 0.8 + (attentionHeads / 8) * 0.2;
+                    memory = 1.2 + (contextLength / 512) * 0.5;
+                    accuracy = 85 + (attentionHeads / 8) * 3;
+                    break;
+                case 'base':
+                    speed = 1.2 + (attentionHeads / 8) * 0.3;
+                    memory = 2.1 + (contextLength / 512) * 0.8;
+                    accuracy = 88 + (attentionHeads / 8) * 2;
+                    break;
+                case 'large':
+                    speed = 2.0 + (attentionHeads / 8) * 0.4;
+                    memory = 4.5 + (contextLength / 512) * 1.2;
+                    accuracy = 92 + (attentionHeads / 8) * 1;
+                    break;
+                default:
+                    speed = 1.2;
+                    memory = 2.1;
+                    accuracy = 88;
+            }
+            
+            // Update the performance bars and values
+            const speedBar = document.getElementById('speedBar');
+            const memoryBar = document.getElementById('memoryBar');
+            const accuracyBar = document.getElementById('accuracyBar');
+            const speedValue = document.getElementById('speedValue');
+            const memoryValue = document.getElementById('memoryValue');
+            const accuracyValue = document.getElementById('accuracyValue');
+            
+            if (speedBar && memoryBar && accuracyBar && speedValue && memoryValue && accuracyValue) {
+                speedBar.style.width = Math.min(100, (1 / speed) * 100) + '%';
+                memoryBar.style.width = Math.min(100, (memory / 8) * 100) + '%';
+                accuracyBar.style.width = accuracy + '%';
+                
+                speedValue.textContent = speed.toFixed(1) + 's';
+                memoryValue.textContent = memory.toFixed(1) + 'GB';
+                accuracyValue.textContent = accuracy.toFixed(1) + '%';
+            }
+        }
+
+        function initializeArchitecture() {
+            updateArchitecture();
+        }
+
+        function updateArchitecture() {
+            const attentionHeads = parseInt(document.getElementById('attentionHeads').value);
+            const contextLength = document.getElementById('contextLength').value;
+            const modelSize = document.getElementById('modelSize').value;
+            
+            // Update input layer nodes
+            const inputNodes = document.getElementById('inputNodes');
+            if (inputNodes) {
+                inputNodes.innerHTML = '';
+                const inputCount = Math.min(8, Math.max(3, Math.floor(contextLength / 64)));
+                for (let i = 0; i < inputCount; i++) {
+                    const node = document.createElement('div');
+                    node.className = 'node';
+                    node.textContent = 'I' + (i + 1);
+                    node.title = `Input Node ${i + 1}`;
+                    inputNodes.appendChild(node);
+                }
+            }
+            
+            // Update attention layer nodes
+            const attentionNodes = document.getElementById('attentionNodes');
+            if (attentionNodes) {
+                attentionNodes.innerHTML = '';
+                for (let i = 0; i < attentionHeads; i++) {
+                    const node = document.createElement('div');
+                    node.className = 'node attention-node';
+                    node.textContent = 'A' + (i + 1);
+                    node.title = `Attention Head ${i + 1}`;
+                    attentionNodes.appendChild(node);
+                }
+            }
+            
+            // Update output layer nodes
+            const outputNodes = document.getElementById('outputNodes');
+            if (outputNodes) {
+                outputNodes.innerHTML = '';
+                const outputCount = modelSize === 'large' ? 4 : modelSize === 'base' ? 3 : 2;
+                for (let i = 0; i < outputCount; i++) {
+                    const node = document.createElement('div');
+                    node.className = 'node';
+                    node.textContent = 'O' + (i + 1);
+                    node.title = `Output Node ${i + 1}`;
+                    outputNodes.appendChild(node);
+                }
+            }
+            
+            // Add connections between layers
+            addConnections();
+        }
+
+        function addConnections() {
+            const container = document.getElementById('architectureViz');
+            if (!container) return;
+            
+            // Remove existing connections
+            const existingConnections = container.querySelectorAll('.connection');
+            existingConnections.forEach(conn => conn.remove());
+            
+            // Add new connections
+            const inputNodes = container.querySelectorAll('#inputNodes .node');
+            const attentionNodes = container.querySelectorAll('#attentionNodes .node');
+            const outputNodes = container.querySelectorAll('#outputNodes .node');
+            
+            // Connect input to attention (sample connections)
+            inputNodes.forEach((inputNode, i) => {
+                attentionNodes.forEach((attentionNode, j) => {
+                    if (i % 2 === 0 || j % 2 === 0) { // Connect every other node
+                        const connection = document.createElement('div');
+                        connection.className = 'connection';
+                        connection.style.left = inputNode.offsetLeft + inputNode.offsetWidth / 2 + 'px';
+                        connection.style.top = inputNode.offsetTop + inputNode.offsetHeight / 2 + 'px';
+                        connection.style.width = '100px';
+                        connection.style.transform = 'rotate(0deg)';
+                        container.appendChild(connection);
+                    }
+                });
+            });
+            
+            // Connect attention to output (sample connections)
+            attentionNodes.forEach((attentionNode, i) => {
+                outputNodes.forEach((outputNode, j) => {
+                    if (i % 2 === 0 || j % 2 === 0) { // Connect every other node
+                        const connection = document.createElement('div');
+                        connection.className = 'connection';
+                        connection.style.left = attentionNode.offsetLeft + attentionNode.offsetWidth / 2 + 'px';
+                        connection.style.top = attentionNode.offsetTop + attentionNode.offsetHeight / 2 + 'px';
+                        connection.style.width = '100px';
+                        connection.style.transform = 'rotate(0deg)';
+                        container.appendChild(connection);
+                    }
+                });
+            });
+        }
+
+        function addRandomAnomaly() {
+            const historicalData = forecastChart.data.datasets[0].data;
+            const randomIndex = Math.floor(Math.random() * historicalData.length * 0.3) + historicalData.length * 0.7;
+            if (historicalData[randomIndex]) {
+                historicalData[randomIndex].y *= (Math.random() > 0.5 ? 2.5 : 0.3);
+                forecastChart.update('active');
+            }
+        }
+
+        function addAnomalyAtPoint(index) {
+            const historicalData = forecastChart.data.datasets[0].data;
+            if (historicalData[index]) {
+                historicalData[index].y *= 2;
+                forecastChart.update('active');
+            }
+        }
+
+        function initializeMultivariateChart() {
+            const ctx = document.getElementById('multivariateChart').getContext('2d');
+            const numVars = parseInt(document.getElementById('numVariables').value);
+            const datasets = generateMultivariateData(numVars, 0.5);
+            
+            multivariateChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Hours'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Normalized Value'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        function generateMultivariateData(numVars, correlation) {
+            const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#f97316', '#06b6d4'];
+            const names = ['CPU Usage', 'Memory Usage', 'Network I/O', 'Disk I/O', 'Response Time', 'Error Rate', 'Throughput'];
+            const datasets = [];
+            const length = 48; // 48 hours
+            
+            // Generate base pattern
+            const basePattern = [];
+            for (let i = 0; i < length; i++) {
+                basePattern.push(50 + 20 * Math.sin(2 * Math.PI * i / 24) + Math.random() * 10 - 5);
+            }
+            
+            for (let v = 0; v < numVars; v++) {
+                const data = [];
+                
+                for (let i = 0; i < length; i++) {
+                    let value;
+                    
+                    if (correlation > 0.5) {
+                        // High correlation - follow base pattern with some variation
+                        value = basePattern[i] + (Math.random() * 15 - 7.5) * (1 - correlation);
+                    } else {
+                        // Low correlation - more independent
+                        value = 50 + 25 * Math.sin(2 * Math.PI * i / (24 + v * 3)) + Math.random() * 20 - 10;
+                    }
+                    
+                    data.push({
+                        x: i,
+                        y: Math.max(0, Math.min(100, value))
+                    });
+                }
+                
+                datasets.push({
+                    label: names[v],
+                    data: data,
+                    borderColor: colors[v],
+                    backgroundColor: colors[v],
+                    borderWidth: 2,
+                    fill: false,
+                    pointRadius: 0
+                });
+            }
+            
+            return datasets;
+        }
+
+        function updateMultivariate() {
+            const numVars = parseInt(document.getElementById('numVariables').value);
+            const correlation = parseFloat(document.getElementById('correlation').value) / 100;
+            
+            const datasets = generateMultivariateData(numVars, correlation);
+            multivariateChart.data.datasets = datasets;
+            multivariateChart.update('active');
+        }
+    </script>
+</body>
+</html>
